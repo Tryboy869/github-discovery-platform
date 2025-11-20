@@ -1,0 +1,42 @@
+{
+  "name": "gitradar",
+  "version": "1.0.0",
+  "description": "GitHub Intelligence Layer - Découverte intelligente de l'open-source",
+  "type": "module",
+  "main": "api.js",
+  "scripts": {
+    "start": "node api.js",
+    "dev": "node --watch api.js"
+  },
+  "keywords": [
+    "github",
+    "discovery",
+    "ai",
+    "open-source",
+    "nexus-axion"
+  ],
+  "author": {
+    "name": "Abdoul Anzize DAOUDA",
+    "email": "anzizdaouda0@gmail.com",
+    "company": "Nexus Studio"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@libsql/client": "^0.4.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tryboy869/gitradar.git"
+  }
+}
