@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitRadar - GitHub Intelligence Layer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #6366f1;
+      --secondary: #8b5cf6;
+      --dark: #0f172a;
+      --darker: #020617;
+      --light: #f1f5f9;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+      color: white;
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      border-bottom: 1px solid rgba(99, 102, 241, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .auth-buttons button {
+      padding: 0.5rem 1.5rem;
+      margin-left: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+
+    .btn-login {
+      background: transparent;
+      color: white;
+      border: 1px solid var(--primary);
+    }
+
+    .btn-login:hover {
+      background: var(--primary);
+    }
+
+    .btn-register {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+    }
+
+    .btn-register:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* CONTAINER */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* HERO SECTION */
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, white, var(--light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: var(--light);
+      opacity: 0.8;
+      margin-bottom: 2rem;
+    }
+
+    /* MODE SELECTOR */
+    .mode-selector {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .mode-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 300px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .mode-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+    }
+
+    .mode-card.active {
+      border-color: var(--primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    .mode-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .mode-card h3 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .mode-card p {
+      color: var(--light);
+      opacity: 0.7;
+    }
+
+    /* SEARCH BAR */
+    .search-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 1rem 1.5rem;
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .search-bar input:focus {
+      border-color: var(--primary);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .search-bar button {
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .search-bar button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    /* FILTERS */
+    .filters {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .filter-group label {
+      font-size: 0.85rem;
+      color: var(--light);
+      opacity: 0.8;
+    }
+
+    .filter-group select {
+      padding: 0.75rem 1rem;
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* RESULTS */
+    .results-section {
+      margin-top: 2rem;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .results-header h2 {
+      font-size: 1.5rem;
+    }
+
+    .results-count {
+      color: var(--light);
+      opacity: 0.7;
+    }
+
+    .repos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .repo-card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+
+    .repo-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(99, 102, 241, 0.2);
+    }
+
+    .repo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .repo-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .repo-fullname {
+      font-size: 0.85rem;
+      color: var(--light);
+      opacity: 0.6;
+    }
+
+    .utility-score {
+      background: linear-gradient(135deg, var(--success), #059669);
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .repo-description {
+      color: var(--light);
+      opacity: 0.8;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .repo-meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.85rem;
+      color: var(--light);
+      opacity: 0.7;
+      margin-bottom: 1rem;
+    }
+
+    .repo-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .repo-tags {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      background: rgba(99, 102, 241, 0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      color: var(--primary);
+    }
+
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--light);
+      opacity: 0.7;
+    }
+
+    .spinner {
+      border: 3px solid rgba(99, 102, 241, 0.3);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* MODAL */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--dark);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+      font-size: 1.5rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+
+    .modal-close:hover {
+      opacity: 1;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--light);
+      opacity: 0.8;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 1rem;
+      border: 2px solid rgba(99, 102, 241, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 1rem;
+      outline: none;
+      transition: all 0.3s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .error-message {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .success-message {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    /* HIDDEN */
+    .hidden {
+      display: none !important;
+    }
+
+    /* USER PROFILE */
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .btn-logout {
+      padding: 0.5rem 1rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-logout:hover {
+      background: var(--error);
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header>
+    <div class="header-content">
+      <div class="logo">🌌 GitRadar</div>
+      
+      <!-- Auth Buttons (hidden when logged in) -->
+      <div class="auth-buttons" id="authButtons">
+        <button class="btn-login" onclick="showLoginModal()">Connexion</button>
+        <button class="btn-register" onclick="showRegisterModal()">Inscription</button>
+      </div>
+
+      <!-- User Profile (hidden by default) -->
+      <div class="user-profile hidden" id="userProfile">
+        <div class="user-avatar" id="userAvatar"></div>
+        <span id="username"></span>
+        <button class="btn-logout" onclick="logout()">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <div class="container">
+    <!-- HERO -->
+    <div class="hero">
+      <h1>Découvre l'Open-Source Intelligemment</h1>
+      <p>L'IA qui comprend GitHub et trouve les projets parfaits pour toi</p>
+    </div>
+
+    <!-- MODE SELECTOR -->
+    <div class="mode-selector">
+      <div class="mode-card active" onclick="switchMode('manual')">
+        <div class="mode-icon">🔍</div>
+        <h3>Mode Manuel</h3>
+        <p>Explore librement avec des filtres avancés</p>
+      </div>
+
+      <div class="mode-card" onclick="switchMode('ai')">
+        <div class="mode-icon">🤖</div>
+        <h3>Assistant IA</h3>
+        <p>Recommandations personnalisées instantanées</p>
+      </div>
+    </div>
+
+    <!-- MANUAL MODE (default) -->
+    <div id="manualMode" class="search-section">
+      <div class="search-bar">
+        <input 
+          type="text" 
+          id="searchInput" 
+          placeholder="Rechercher des projets... (ex: authentication, REST API, React components)"
+          onkeypress="if(event.key === 'Enter') searchRepos()"
+        />
+        <button onclick="searchRepos()">🔍 Rechercher</button>
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Langage</label>
+          <select id="languageFilter" onchange="searchRepos()">
+            <option value="">Tous</option>
+            <option value="Python">Python</option>
+            <option value="JavaScript">JavaScript</option>
+            <option value="TypeScript">TypeScript</option>
+            <option value="Go">Go</option>
+            <option value="Rust">Rust</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Catégorie</label>
+          <select id="categoryFilter" onchange="searchRepos()">
+            <option value="">Toutes</option>
+            <option value="authentication">Authentication</option>
+            <option value="database">Database</option>
+            <option value="api">API</option>
+            <option value="ui-component">UI Components</option>
+            <option value="framework">Frameworks</option>
+            <option value="testing">Testing</option>
+            <option value="devops">DevOps</option>
+            <option value="ai-ml">AI/ML</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Trier par</label>
+          <select id="sortFilter" onchange="searchRepos()">
+            <option value="utility_score">Utilité</option>
+            <option value="stars">Stars</option>
+            <option value="recent">Récent</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI MODE (hidden by default) -->
+    <div id="aiMode" class="search-section hidden">
+      <h3 style="margin-bottom: 1rem;">🤖 Dis-moi ce que tu veux construire</h3>
+      <div class="search-bar">
+        <input 
+          type="text" 
+          id="aiInput" 
+          placeholder="ex: Je veux créer un SaaS avec auth et paiements Stripe"
+          onkeypress="if(event.key === 'Enter') getAIRecommendations()"
+        />
+        <button onclick="getAIRecommendations()">🚀 Recommande-moi</button>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-section">
+      <div class="results-header">
+        <h2>📦 Résultats</h2>
+        <span class="results-count" id="resultsCount">0 projets</span>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading hidden" id="loading">
+        <div class="spinner"></div>
+        <p>Recherche en cours...</p>
+      </div>
+
+      <!-- Repos Grid -->
+      <div class="repos-grid" id="reposGrid"></div>
+    </div>
+  </div>
+
+  <!-- MODALS -->
+  <!-- Login Modal -->
+  <div class="modal" id="loginModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Connexion</h2>
+        <button class="modal-close" onclick="closeModal('loginModal')">×</button>
+      </div>
+      <div id="loginError" class="error-message hidden"></div>
+      <form onsubmit="login(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="loginEmail" required />
+        </div>
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="loginPassword" required />
+        </div>
+        <button type="submit" class="btn-submit">Se connecter</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div class="modal" id="registerModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Inscription</h2>
+        <button class="modal-close" onclick="closeModal('registerModal')">×</button>
+      </div>
+      <div id="registerError" class="error-message hidden"></div>
+      <form onsubmit="register(event)">
+        <div class="form-group">
+          <label>Nom d'utilisateur</label>
+          <input type="text" id="registerUsername" required />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="registerEmail" required />
+        </div>
+        <div class="form-group">
+          <label>Mot de passe (min. 8 caractères)</label>
+          <input type="password" id="registerPassword" minlength="8" required />
+        </div>
+        <button type="submit" class="btn-submit">S'inscrire</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT continues in Part 2... -->
