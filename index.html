@@ -695,3 +695,367 @@
   </div>
 
   <!-- SCRIPT continues in Part 2... -->
+
+// AJOUTER CE SCRIPT À LA FIN DU </body> dans index.html
+
+<script>
+  // ========== STATE MANAGEMENT ==========
+  let currentMode = 'manual';
+  let currentUser = null;
+  let authToken = null;
+
+  // ========== INITIALIZATION ==========
+  window.addEventListener('DOMContentLoaded', () => {
+    console.log('🌌 GitRadar initialized');
+    
+    // Vérifier si user est connecté
+    const token = localStorage.getItem('gitradar_token');
+    if (token) {
+      authToken = token;
+      loadUserProfile();
+    }
+
+    // Charger repos par défaut
+    searchRepos();
+  });
+
+  // ========== MODE SWITCHING ==========
+  function switchMode(mode) {
+    currentMode = mode;
+
+    // Update UI
+    document.querySelectorAll('.mode-card').forEach(card => {
+      card.classList.remove('active');
+    });
+    event.target.closest('.mode-card').classList.add('active');
+
+    // Show/hide sections
+    if (mode === 'manual') {
+      document.getElementById('manualMode').classList.remove('hidden');
+      document.getElementById('aiMode').classList.add('hidden');
+      searchRepos();
+    } else {
+      document.getElementById('manualMode').classList.add('hidden');
+      document.getElementById('aiMode').classList.remove('hidden');
+      document.getElementById('reposGrid').innerHTML = '';
+      document.getElementById('resultsCount').textContent = '0 projets';
+    }
+  }
+
+  // ========== SEARCH REPOS ==========
+  async function searchRepos() {
+    console.log('🔍 Searching repos...');
+    
+    const searchInput = document.getElementById('searchInput').value;
+    const language = document.getElementById('languageFilter').value;
+    const category = document.getElementById('categoryFilter').value;
+    const sortBy = document.getElementById('sortFilter').value;
+
+    showLoading();
+
+    try {
+      const params = new URLSearchParams({
+        search: searchInput,
+        language,
+        category,
+        sortBy,
+        limit: 50
+      });
+
+      const response = await fetch(`/api/repos?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        displayRepos(data.repos);
+      } else {
+        showError('Erreur lors de la recherche');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      showError('Erreur de connexion');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  // ========== AI RECOMMENDATIONS ==========
+  async function getAIRecommendations() {
+    console.log('🤖 Getting AI recommendations...');
+
+    const aiInput = document.getElementById('aiInput').value;
+
+    if (!aiInput.trim()) {
+      alert('Décris ce que tu veux construire');
+      return;
+    }
+
+    showLoading();
+
+    try {
+      const response = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
+        },
+        body: JSON.stringify({
+          projectType: 'custom',
+          features: extractFeatures(aiInput),
+          description: aiInput
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        displayRepos(data.recommendations);
+      } else {
+        showError('Erreur lors de la recommandation');
+      }
+    } catch (error) {
+      console.error('AI error:', error);
+      showError('Erreur de connexion');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function extractFeatures(text) {
+    const features = [];
+    const keywords = {
+      'auth': 'authentication',
+      'login': 'authentication',
+      'database': 'database',
+      'api': 'api',
+      'payment': 'payment',
+      'stripe': 'payment',
+      'ui': 'ui-component',
+      'component': 'ui-component'
+    };
+
+    text = text.toLowerCase();
+    for (const [keyword, feature] of Object.entries(keywords)) {
+      if (text.includes(keyword) && !features.includes(feature)) {
+        features.push(feature);
+      }
+    }
+
+    return features.length > 0 ? features : ['general'];
+  }
+
+  // ========== DISPLAY REPOS ==========
+  function displayRepos(repos) {
+    const grid = document.getElementById('reposGrid');
+    const count = document.getElementById('resultsCount');
+
+    if (!repos || repos.length === 0) {
+      grid.innerHTML = '<p style="text-align: center; opacity: 0.7; padding: 3rem;">Aucun projet trouvé</p>';
+      count.textContent = '0 projets';
+      return;
+    }
+
+    count.textContent = `${repos.length} projet${repos.length > 1 ? 's' : ''}`;
+
+    grid.innerHTML = repos.map(repo => {
+      const analysis = repo.ai_analysis;
+      
+      return `
+        <div class="repo-card" onclick="window.open('https://github.com/${repo.full_name}', '_blank')">
+          <div class="repo-header">
+            <div>
+              <div class="repo-name">${repo.name}</div>
+              <div class="repo-fullname">${repo.full_name}</div>
+            </div>
+            <div class="utility-score">⭐ ${analysis.utility_score}</div>
+          </div>
+
+          <div class="repo-description">
+            ${repo.description || 'No description available'}
+          </div>
+
+          <div class="repo-meta">
+            <span>⭐ ${formatNumber(repo.stars)}</span>
+            <span>🔱 ${formatNumber(repo.forks)}</span>
+            <span>💻 ${repo.language}</span>
+          </div>
+
+          <div class="repo-tags">
+            <span class="tag">${analysis.category}</span>
+            <span class="tag">${analysis.complexity}</span>
+            ${analysis.production_ready ? '<span class="tag">Production Ready</span>' : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ========== AUTH FUNCTIONS ==========
+  function showLoginModal() {
+    document.getElementById('loginModal').classList.add('show');
+  }
+
+  function showRegisterModal() {
+    document.getElementById('registerModal').classList.add('show');
+  }
+
+  function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+  }
+
+  async function login(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        authToken = data.token;
+        localStorage.setItem('gitradar_token', authToken);
+        currentUser = data.user;
+        
+        updateUIForLoggedInUser();
+        closeModal('loginModal');
+        
+        showSuccess('Connexion réussie !');
+      } else {
+        showErrorInModal('loginError', data.message);
+      }
+    } catch (error) {
+      showErrorInModal('loginError', 'Erreur de connexion');
+    }
+  }
+
+  async function register(event) {
+    event.preventDefault();
+
+    const username = document.getElementById('registerUsername').value;
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        authToken = data.token;
+        localStorage.setItem('gitradar_token', authToken);
+        currentUser = data.user;
+        
+        updateUIForLoggedInUser();
+        closeModal('registerModal');
+        
+        showSuccess('Inscription réussie !');
+      } else {
+        showErrorInModal('registerError', data.message);
+      }
+    } catch (error) {
+      showErrorInModal('registerError', 'Erreur d\'inscription');
+    }
+  }
+
+  async function loadUserProfile() {
+    try {
+      const response = await fetch('/api/profile', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        currentUser = data.user;
+        updateUIForLoggedInUser();
+      } else {
+        logout();
+      }
+    } catch (error) {
+      logout();
+    }
+  }
+
+  function logout() {
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('gitradar_token');
+    
+    document.getElementById('authButtons').classList.remove('hidden');
+    document.getElementById('userProfile').classList.add('hidden');
+  }
+
+  function updateUIForLoggedInUser() {
+    document.getElementById('authButtons').classList.add('hidden');
+    document.getElementById('userProfile').classList.remove('hidden');
+    
+    const avatar = document.getElementById('userAvatar');
+    const username = document.getElementById('username');
+    
+    avatar.textContent = currentUser.username.charAt(0).toUpperCase();
+    username.textContent = currentUser.username;
+  }
+
+  // ========== UI HELPERS ==========
+  function showLoading() {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('reposGrid').innerHTML = '';
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').classList.add('hidden');
+  }
+
+  function showError(message) {
+    alert('❌ ' + message);
+  }
+
+  function showSuccess(message) {
+    alert('✅ ' + message);
+  }
+
+  function showErrorInModal(elementId, message) {
+    const errorEl = document.getElementById(elementId);
+    errorEl.textContent = message;
+    errorEl.classList.remove('hidden');
+    
+    setTimeout(() => {
+      errorEl.classList.add('hidden');
+    }, 5000);
+  }
+
+  function formatNumber(num) {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'k';
+    }
+    return num.toString();
+  }
+
+  // ========== HEALTH CHECK ==========
+  async function checkHealth() {
+    try {
+      const response = await fetch('/api/health');
+      const data = await response.json();
+      console.log('🏥 Health:', data);
+    } catch (error) {
+      console.error('Health check failed:', error);
+    }
+  }
+
+  // Test health on load
+  checkHealth();
+</script>
+</body>
+</html>
