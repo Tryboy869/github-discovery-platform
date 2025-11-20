@@ -1,4 +1,4 @@
-// scanner.js - Backend Service GitRadar
+// scanner.js - Backend Service GitRadar COMPLET
 // GitHub Scanner + IA Analysis + Database Management
 // CEO: Abdoul Anzize DAOUDA - Nexus Studio
 
@@ -9,8 +9,8 @@ import jwt from 'jsonwebtoken';
 // ========== CONFIGURATION ==========
 const TOP_5_LANGUAGES = ['Python', 'JavaScript', 'TypeScript', 'Go', 'Rust'];
 const GITHUB_API = 'https://api.github.com';
-const SCAN_BATCH_SIZE = 100; // Repos par batch
-const SCAN_INTERVAL = 12 * 60 * 60 * 1000; // 12 heures
+const SCAN_BATCH_SIZE = 100;
+const SCAN_INTERVAL = 12 * 60 * 60 * 1000;
 
 export class GitRadarScanner {
   constructor() {
@@ -21,33 +21,26 @@ export class GitRadarScanner {
     this.scanInProgress = false;
   }
 
-  // ========== INITIALISATION ==========
   async init() {
     console.log('✅ [SCANNER] Initializing databases...');
     
-    // DB Utilisateurs
     this.usersDb = createClient({
       url: process.env.TURSO_USERS_URL,
       authToken: process.env.TURSO_USERS_TOKEN
     });
 
-    // DB Repos
     this.reposDb = createClient({
       url: process.env.TURSO_REPOS_URL,
       authToken: process.env.TURSO_REPOS_TOKEN
     });
 
-    // Créer tables si nécessaire
     await this.createTables();
-    
-    // Démarrer scan automatique
     this.startAutoScan();
     
     console.log('✅ [SCANNER] Ready');
   }
 
   async createTables() {
-    // Table users
     await this.usersDb.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +53,6 @@ export class GitRadarScanner {
       )
     `);
 
-    // Table repos
     await this.reposDb.execute(`
       CREATE TABLE IF NOT EXISTS repos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +78,6 @@ export class GitRadarScanner {
     console.log('✅ [SCANNER] Tables created/verified');
   }
 
-  // ========== AUTHENTIFICATION ==========
   async registerUser(body) {
     const { username, email, password } = body;
 
@@ -98,7 +89,6 @@ export class GitRadarScanner {
       throw new Error('Password must be at least 8 characters');
     }
 
-    // Hash password
     const password_hash = await bcrypt.hash(password, 10);
 
     try {
@@ -109,7 +99,6 @@ export class GitRadarScanner {
 
       console.log(`✅ [AUTH] User registered: ${username}`);
 
-      // Générer JWT
       const token = jwt.sign({ username, email }, this.jwtSecret, { expiresIn: '7d' });
 
       return {
@@ -168,7 +157,6 @@ export class GitRadarScanner {
     };
   }
 
-  // ========== GITHUB SCANNING ==========
   async scanGitHubRepos(language, limit = SCAN_BATCH_SIZE) {
     console.log(`🔍 [SCANNER] Scanning ${language} repos (limit: ${limit})`);
 
@@ -222,8 +210,6 @@ export class GitRadarScanner {
   }
 
   async analyzeRepoWithAI(repo, readme) {
-    // Analyse IA du README pour extraire métadonnées intelligentes
-    
     const analysis = {
       category: this.detectCategory(readme, repo),
       use_case: this.extractUseCase(readme),
@@ -269,7 +255,6 @@ export class GitRadarScanner {
   }
 
   extractUseCase(readme) {
-    // Extrait le cas d'usage principal du README
     const lines = readme.split('\n').slice(0, 20);
     for (const line of lines) {
       if (line.toLowerCase().includes('use case') || 
@@ -341,23 +326,19 @@ export class GitRadarScanner {
   calculateUtilityScore(repo, readme) {
     let score = 5.0;
 
-    // Stars
     if (repo.stargazers_count > 10000) score += 1.5;
     else if (repo.stargazers_count > 1000) score += 1.0;
     else if (repo.stargazers_count > 100) score += 0.5;
 
-    // Documentation quality
     if (readme && readme.length > 1000) score += 1.0;
     if (readme && readme.includes('## Installation')) score += 0.5;
     if (readme && readme.includes('## Usage')) score += 0.5;
     if (readme && readme.includes('## Examples')) score += 0.5;
 
-    // Activity
     const lastUpdate = new Date(repo.updated_at);
     const daysSinceUpdate = (Date.now() - lastUpdate) / (1000 * 60 * 60 * 24);
     if (daysSinceUpdate < 30) score += 0.5;
 
-    // Issues/PRs (signe de communauté active)
     if (repo.open_issues_count > 0 && repo.open_issues_count < 100) score += 0.5;
 
     return Math.min(score, 10).toFixed(1);
@@ -390,10 +371,9 @@ export class GitRadarScanner {
       }
     }
     
-    // Heuristique: beaucoup de stars + pas d'update récente = stable
     if (repo.stargazers_count > 1000) {
       const daysSinceUpdate = (Date.now() - new Date(repo.updated_at)) / (1000 * 60 * 60 * 24);
-      if (daysSinceUpdate > 90) return true; // Stable, pas besoin d'updates
+      if (daysSinceUpdate > 90) return true;
     }
     
     return repo.stargazers_count > 500;
@@ -408,14 +388,6 @@ export class GitRadarScanner {
     
     return 'general_development';
   }
-
-  // Suite dans Part 2...
-}
-
-    // scanner.js - Part 2/2
-// Continuer la classe GitRadarScanner...
-
-// Ajouter ces méthodes à la classe GitRadarScanner (après extractBestFor):
 
   async saveRepo(repo, readme, analysis) {
     try {
@@ -456,7 +428,6 @@ export class GitRadarScanner {
 
     for (const repo of repos) {
       try {
-        // Vérifier si déjà scanné récemment
         const existing = await this.reposDb.execute({
           sql: `SELECT scan_date FROM repos WHERE github_id = ?`,
           args: [repo.id]
@@ -472,7 +443,6 @@ export class GitRadarScanner {
           }
         }
 
-        // Fetch README
         const readme = await this.fetchReadme(repo.full_name);
         
         if (!readme || readme.length < 100) {
@@ -480,14 +450,10 @@ export class GitRadarScanner {
           continue;
         }
 
-        // Analyse IA
         const analysis = await this.analyzeRepoWithAI(repo, readme);
-
-        // Sauvegarder
         await this.saveRepo(repo, readme, analysis);
         processed++;
 
-        // Rate limiting: attendre 500ms entre chaque repo
         await new Promise(resolve => setTimeout(resolve, 500));
 
       } catch (error) {
@@ -502,10 +468,8 @@ export class GitRadarScanner {
   startAutoScan() {
     console.log('🔄 [SCANNER] Starting auto-scan (every 12h)');
 
-    // Scan initial
     this.performFullScan();
 
-    // Scan toutes les 12h
     setInterval(() => {
       this.performFullScan();
     }, SCAN_INTERVAL);
@@ -523,7 +487,6 @@ export class GitRadarScanner {
     try {
       for (const language of TOP_5_LANGUAGES) {
         await this.scanLanguage(language);
-        // Pause entre chaque langage pour éviter rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
@@ -534,8 +497,6 @@ export class GitRadarScanner {
       this.scanInProgress = false;
     }
   }
-
-  // ========== API ENDPOINTS ==========
 
   async searchRepos(query) {
     const { 
@@ -570,7 +531,6 @@ export class GitRadarScanner {
       args.push(minStars);
     }
 
-    // Tri
     if (sortBy === 'utility_score') {
       sql += ` ORDER BY CAST(json_extract(ai_analysis, '$.utility_score') AS REAL) DESC`;
     } else if (sortBy === 'stars') {
@@ -639,7 +599,6 @@ export class GitRadarScanner {
   async getRecommendations(body, headers) {
     const { projectType, features, preferences } = body;
     
-    // Extraire user depuis JWT
     const token = headers['authorization']?.replace('Bearer ', '');
     let userPreferences = preferences || {};
 
@@ -659,7 +618,6 @@ export class GitRadarScanner {
       }
     }
 
-    // Recherche intelligente basée sur projectType et features
     const recommendations = [];
 
     for (const feature of features || []) {
@@ -688,7 +646,6 @@ export class GitRadarScanner {
   async buildStack(body) {
     const { projectDescription, constraints } = body;
 
-    // Analyse simplifiée: extraire mots-clés du projectDescription
     const keywords = projectDescription.toLowerCase().match(/\w+/g) || [];
     
     const stack = {
@@ -698,7 +655,6 @@ export class GitRadarScanner {
       tools: []
     };
 
-    // Rechercher repos pertinents pour chaque catégorie
     const categories = ['framework', 'database', 'api', 'authentication'];
 
     for (const category of categories) {
