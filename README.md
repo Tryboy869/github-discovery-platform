@@ -1,347 +1,243 @@
-# 🌌 GitRadar - GitHub Intelligence Layer
+# 🔍 GitHub Discovery Platform
 
-> **Découverte intelligente de l'open-source**  
-> L'IA qui comprend GitHub et trouve les projets parfaits pour toi
+> Plateforme intelligente de découverte de projets GitHub open-source
 
----
-
-## 📋 Vue d'Ensemble
-
-**GitRadar** résout un problème fondamental de l'écosystème open-source : **la découvrabilité**.
-
-Des millions de projets GitHub sont invisibles car :
-- ❌ La recherche GitHub est limitée aux mots-clés exacts
-- ❌ Les petits projets utiles sont noyés par les projets viraux
-- ❌ Aucune personnalisation selon le profil développeur
-- ❌ Les projets stables mais inactifs sont considérés "morts"
-
-### 💡 Notre Solution
-
-**GitRadar** utilise l'IA pour analyser intelligemment les repos GitHub et recommander les projets selon :
-- ✅ **Utilité réelle** (pas juste les stars)
-- ✅ **Contexte utilisateur** (stack, objectifs, niveau)
-- ✅ **Analyse sémantique** des README
-- ✅ **Catégorisation intelligente** automatique
+**CEO & Fondateur** : Abdoul Anzize DAOUDA  
+**Studio** : Nexus Studio  
+**Contact** : nexusstudio100@gmail.com  
+**GitHub** : [@Tryboy869](https://github.com/Tryboy869)
 
 ---
 
-## 🚀 Fonctionnalités
+## 🎯 Vision
+
+GitHub Discovery résout le problème majeur de l'écosystème open-source : **la découvrabilité**.
+
+Millions de projets existent sur GitHub, mais seuls les plus populaires sont visibles. Cette plateforme utilise l'**intelligence artificielle** pour analyser, catégoriser et recommander les meilleurs projets selon **l'utilité réelle**, pas seulement les stars.
+
+---
+
+## ✨ Fonctionnalités
 
 ### 🔍 Mode Exploration Manuelle
-- Recherche sémantique avancée
-- Filtres multi-critères (langage, catégorie, utilité)
-- Tri intelligent (utilité, stars, récent)
-- Découverte par domaine
+- Filtrage par langage (JavaScript, Python, Java, TypeScript, Go)
+- Recherche par catégorie (Auth, API, Database, UI, etc.)
+- Classement par score d'utilité (non biaisé par les stars)
+- Analyse approfondie de chaque projet
 
-### 🤖 Assistant IA
-- Recommandations personnalisées
-- "Dis-moi ce que tu veux construire"
-- Stack Builder automatique
-- Analyse d'intention
+### 🤖 Mode Assistant IA
+- Décrivez votre besoin en langage naturel
+- L'IA recommande les meilleurs outils
+- Stack technique complète générée automatiquement
+- Justifications intelligentes pour chaque recommandation
 
-### 📊 Intelligence Repos
-- **Utility Score** : Score de 0 à 10 basé sur documentation, activité, communauté
-- **Catégorisation auto** : Authentication, Database, API, etc.
-- **Production-ready detection** : Stable vs Experimental
-- **Tech Stack extraction** : Technologies détectées automatiquement
-
-### 🔐 Authentification
-- Inscription/Connexion JWT
-- Profil utilisateur personnalisé
-- Préférences sauvegardées
+### 💎 Scoring Intelligent
+- **Utility Score** : Score d'utilité réel basé sur :
+  - Qualité de la documentation
+  - Maturité du projet
+  - Features disponibles
+  - Production-readiness
+- Pas de biais par stars ou auteur populaire
 
 ---
 
-## 🏗️ Architecture Technique
+## 🏗️ Architecture
 
-### NEXUS AXION 3.5
-Architecture à **3 fichiers** maximum :
-
+### Frontend (Multi-Pages)
 ```
-gitradar/
-├── index.html          # Frontend (HTML + CSS + JS)
-├── api.js              # 🔀 API Gateway (Point d'entrée)
-├── scanner.js          # 🤖 Backend (Scan + IA + DB)
-├── package.json        # Dépendances
-├── .env                # Variables (JAMAIS commit)
-└── README.md           # Documentation
+index.html          → Landing page
+login.html          → Connexion
+signup.html         → Inscription
+explore.html        → Exploration manuelle
+assistant.html      → Assistant IA
+project.html        → Détail projet
+profile.html        → Profil utilisateur
+assets/
+  ├── styles.css    → Styles globaux
+  └── auth.js       → Gestion auth
 ```
 
-### Stack Technologique
+### Backend (Node.js)
+```
+api.js              → API Gateway (point d'entrée)
+server.js           → Logique backend
+scanner.js          → Scanner GitHub
+```
 
-**Frontend** :
-- HTML5 + CSS3 (Vanilla, zéro framework)
-- JavaScript pur (pas de build step)
-- Design moderne (gradients, glassmorphism)
-
-**Backend** :
-- Node.js 18+ (ESM modules)
-- Express.js (API Gateway)
-- LibSQL/Turso (2 databases)
-- JWT Authentication
-- GitHub API v3
-
-**Base de Données** :
-- **Turso DB 1** : Utilisateurs (email, password, préférences)
-- **Turso DB 2** : Repos GitHub (métadonnées + analyse IA)
-
-**IA** :
-- Analyse sémantique README
-- Extraction métadonnées intelligente
-- Scoring utilité multi-critères
-- Détection catégories automatique
+### Bases de Données (Turso)
+- **DB Users** : Utilisateurs (email, username, password)
+- **DB Projects** : Projets GitHub analysés
 
 ---
 
-## 📦 Installation
+## 🚀 Installation & Déploiement
 
-### 1. Prérequis
-
+### 1. Cloner le repo
 ```bash
-node >= 18.0.0
-npm ou yarn
+git clone https://github.com/Tryboy869/github-discovery.git
+cd github-discovery
 ```
 
-### 2. Cloner le Projet
-
-```bash
-git clone https://github.com/Tryboy869/gitradar.git
-cd gitradar
-```
-
-### 3. Installer Dépendances
-
+### 2. Installer dépendances
 ```bash
 npm install
 ```
 
-### 4. Configuration Variables
-
-Copier `.env.example` en `.env` :
-
+### 3. Configurer variables d'environnement
+Créer un fichier `.env` :
 ```bash
-cp .env.example .env
+# Base de données utilisateurs (Turso DB 1)
+TURSO_DB_URL_USERS=libsql://your-users-db.turso.io
+TURSO_DB_TOKEN_USERS=your_token_here
+
+# Base de données projets GitHub (Turso DB 2)
+TURSO_DB_URL_PROJECTS=libsql://your-projects-db.turso.io
+TURSO_DB_TOKEN_PROJECTS=your_token_here
+
+# GitHub API
+GITHUB_TOKEN=ghp_your_github_personal_access_token
+
+# JWT Secret
+JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
 ```
 
-Remplir les variables dans `.env` :
-
+### 4. Créer les bases Turso
 ```bash
-# GitHub Token (créer sur https://github.com/settings/tokens)
-GITHUB_TOKEN=ghp_votre_token_ici
+# Créer DB users
+turso db create github-discovery-users
 
-# Turso Database URLs (créer sur https://turso.tech)
-TURSO_USERS_URL=libsql://gitradar-users-xxx.turso.io
-TURSO_USERS_TOKEN=votre_token_users
+# Créer DB projects
+turso db create github-discovery-projects
 
-TURSO_REPOS_URL=libsql://gitradar-repos-xxx.turso.io
-TURSO_REPOS_TOKEN=votre_token_repos
-
-# JWT Secret (générer aléatoirement)
-JWT_SECRET=votre-secret-complexe-ici
+# Obtenir les URLs et tokens
+turso db show github-discovery-users
+turso db show github-discovery-projects
 ```
 
-### 5. Créer Databases Turso
-
-```bash
-# Installer Turso CLI
-curl -sSfL https://get.tur.so/install.sh | bash
-
-# Créer DB Users
-turso db create gitradar-users
-turso db tokens create gitradar-users
-
-# Créer DB Repos
-turso db create gitradar-repos
-turso db tokens create gitradar-repos
-
-# Copier les URLs et tokens dans .env
-```
-
-### 6. Lancer le Projet
-
+### 5. Lancer en local
 ```bash
 npm start
 ```
 
-Ouvrir http://localhost:3000
+Ouvrir [http://localhost:3000](http://localhost:3000)
+
+### 6. Scanner les projets GitHub
+```bash
+npm run scan
+```
 
 ---
 
-## 🌐 Déploiement (Render/Railway)
+## 📊 Déploiement Production (Render)
 
 ### Configuration Render
 
 **Build Command** :
-```bash
+```
 npm install
 ```
 
 **Start Command** :
-```bash
+```
 node api.js
 ```
 
-**Variables d'Environnement** :
-- `GITHUB_TOKEN`
-- `TURSO_USERS_URL`
-- `TURSO_USERS_TOKEN`
-- `TURSO_REPOS_URL`
-- `TURSO_REPOS_TOKEN`
-- `JWT_SECRET`
+**Environment Variables** :
+Ajouter toutes les variables du `.env` dans Render
 
-**⚠️ Ne PAS ajouter `PORT` !** (géré automatiquement)
-
-### Checklist Pré-Déploiement
-
-- [ ] Tous fichiers à la racine (vérifier avec `ls`)
-- [ ] `package.json` avec `"main": "api.js"`
-- [ ] `.env` dans `.gitignore`
-- [ ] Variables configurées sur Render
-- [ ] `git push` fait
-
----
-
-## 📊 Scan Automatique
-
-GitRadar scanne automatiquement **5000 repos toutes les 12h** :
-
-**Top 5 Langages 2025** :
-1. 🐍 **Python** (10,000 repos)
-2. 🟨 **JavaScript** (10,000 repos)
-3. 🔷 **TypeScript** (8,000 repos)
-4. 🔵 **Go** (6,000 repos)
-5. 🦀 **Rust** (6,000 repos)
-
-**Total** : 40,000 repos indexés
-
-### Critères de Scan
-
-✅ **Inclus** :
-- Stars > 50
-- README.md présent (> 100 caractères)
-- Pas archivé
-- Langages TOP 5
-
-❌ **Exclus** :
-- Pas de README
-- Archivé
-- < 50 stars
-- README < 100 caractères
-
----
-
-## 🎯 Utilisation
-
-### Mode Manuel
-
-1. **Rechercher** : Saisir mots-clés (ex: "authentication JWT")
-2. **Filtrer** : Choisir langage, catégorie, tri
-3. **Explorer** : Cliquer sur repos pour ouvrir GitHub
-
-### Mode IA
-
-1. **Décrire** : "Je veux créer un SaaS avec auth et paiements"
-2. **Recevoir** : Recommandations personnalisées automatiques
-3. **Construire** : Stack complet suggéré
-
----
-
-## 🧠 Intelligence IA
-
-### Analyse Automatique
-
-Chaque repo scanné est analysé pour extraire :
-
-```json
-{
-  "category": "authentication",
-  "use_case": "JWT auth for Node.js APIs",
-  "problem_solved": "Avoid writing auth boilerplate",
-  "target_audience": "backend_developers",
-  "tech_stack": ["nodejs", "jwt", "express"],
-  "utility_score": 8.7,
-  "complexity": "intermediate",
-  "production_ready": true,
-  "best_for": "lightweight_auth"
-}
+**Health Check Path** :
+```
+/api/health
 ```
 
-### Utility Score (0-10)
+---
 
-Calculé selon :
-- ⭐ **Stars** : Popularité communauté
-- 📖 **Documentation** : Qualité README
-- 🔄 **Activité** : Mises à jour récentes
-- 👥 **Communauté** : Issues/PRs
-- 🏗️ **Maturité** : Stabilité projet
+## 🔧 Technologies Utilisées
+
+### Frontend
+- HTML5 (Multi-pages)
+- CSS3 (Design moderne)
+- JavaScript Vanilla (Pas de framework)
+
+### Backend
+- Node.js 18+
+- Express.js
+- Turso DB (SQLite distribué)
+
+### Authentification
+- bcryptjs (Hash password)
+- jsonwebtoken (JWT tokens)
+
+### GitHub Integration
+- GitHub REST API v3
+- Personal Access Token
+
+---
+
+## 📈 Roadmap
+
+### Phase 1 : MVP (Actuel)
+- ✅ Authentification utilisateurs
+- ✅ Scan top 5 langages (JS, Python, Java, TS, Go)
+- ✅ Exploration manuelle avec filtres
+- ✅ Assistant IA basique
+- ✅ Détail projets avec analyse
+
+### Phase 2 : Intelligence IA (Q1 2025)
+- 🔄 Analyse IA approfondie (GPT-4)
+- 🔄 Recommandations contextuelles avancées
+- 🔄 Graphe de relations entre projets
+- 🔄 Collections dynamiques IA
+
+### Phase 3 : Communauté (Q2 2025)
+- 📅 Favoris & bookmarks
+- 📅 Historique recherches
+- 📅 Notifications nouveaux projets
+- 📅 Système de reviews
+
+### Phase 4 : Écosystème (Q3 2025)
+- 📅 API publique
+- 📅 Extension navigateur
+- 📅 CLI tool
+- 📅 Intégration IDE (VS Code)
 
 ---
 
 ## 🤝 Contribution
 
-### Besoin d'Aide ?
-
-Ouvrir une **Issue** : https://github.com/Tryboy869/gitradar/issues
-
-### Proposer Améliorations
+Les contributions sont les bienvenues !
 
 1. Fork le projet
-2. Créer branche (`git checkout -b feature/amazing`)
-3. Commit (`git commit -m 'Add amazing feature'`)
-4. Push (`git push origin feature/amazing`)
-5. Ouvrir Pull Request
+2. Créer une branche (`git checkout -b feature/AmazingFeature`)
+3. Commit les changements (`git commit -m 'Add AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrir une Pull Request
 
 ---
 
-## 👤 Auteur
+## 📝 License
+
+MIT License - Voir [LICENSE](LICENSE) pour plus de détails
+
+---
+
+## 👤 Contact
 
 **Abdoul Anzize DAOUDA**  
-CEO - Nexus Studio
+CEO & Founder - Nexus Studio
 
-📧 Email : anzizdaouda0@gmail.com  
-🏢 Studio : nexusstudio100@gmail.com  
-🐙 GitHub : [@Tryboy869](https://github.com/Tryboy869)
-
----
-
-## 📄 Licence
-
-MIT License - Libre d'utilisation pour projets personnels et commerciaux.
-
----
-
-## 🌟 Roadmap
-
-### Phase 1 (Actuelle)
-- ✅ Scan TOP 5 langages
-- ✅ Recherche manuelle
-- ✅ Assistant IA basique
-- ✅ Auth utilisateurs
-
-### Phase 2 (Q1 2026)
-- [ ] Collections dynamiques
-- [ ] Graphe relations repos
-- [ ] Comparaison projets
-- [ ] Extension Chrome
-
-### Phase 3 (Q2 2026)
-- [ ] API publique
-- [ ] CLI tool
-- [ ] Intégration VS Code
-- [ ] Notifications projets
+- 📧 Email personnel : anzizdaouda0@gmail.com
+- 📧 Email studio : nexusstudio100@gmail.com
+- 💼 GitHub : [@Tryboy869](https://github.com/Tryboy869)
 
 ---
 
 ## 🙏 Remerciements
 
-- **GitHub** : API publique
-- **Turso** : Database edge computing
-- **Render** : Hébergement fiable
-- **Communauté** : Feedback précieux
+- GitHub pour l'API publique
+- Turso pour la base de données
+- La communauté open-source
 
 ---
 
-**🌌 GitRadar - Construis l'impossible. Simplement.**
-
-> "L'open-source mérite d'être découvert intelligemment."  
-> - Anzize DAOUDA, 2025
+**Fait avec ❤️ par Nexus Studio**
