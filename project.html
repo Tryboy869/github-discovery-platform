@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projet - GitHub Discovery</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="logo" onclick="window.location.href='index.html'">
+        🔍 GitHub Discovery
+      </div>
+    </div>
+    
+    <div class="nav-center">
+      <a href="explore.html" class="nav-link">🔍 Explorer</a>
+      <a href="assistant.html" class="nav-link">🤖 Assistant IA</a>
+    </div>
+    
+    <div class="nav-right">
+      <span id="userName">Chargement...</span>
+      <button onclick="window.location.href='profile.html'" class="btn-profile">👤</button>
+      <button onclick="logout()" class="btn-logout">Déconnexion</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <button onclick="history.back()" class="btn-back">← Retour</button>
+
+    <div id="projectDetail">
+      <div class="loading">Chargement du projet...</div>
+    </div>
+  </div>
+
+  <script src="assets/auth.js"></script>
+  <script>
+    async function loadProject() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const projectId = urlParams.get('id');
+
+      if (!projectId) {
+        window.location.href = 'explore.html';
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}`);
+        const data = await response.json();
+
+        if (data.success) {
+          displayProject(data.project);
+        } else {
+          document.getElementById('projectDetail').innerHTML = 
+            '<div class="error">Projet non trouvé</div>';
+        }
+      } catch (error) {
+        console.error('Error loading project:', error);
+        document.getElementById('projectDetail').innerHTML = 
+          '<div class="error">Erreur de chargement</div>';
+      }
+    }
+
+    function displayProject(project) {
+      const container = document.getElementById('projectDetail');
+      
+      const html = `
+        <div class="project-detail">
+          <div class="project-detail-header">
+            <div>
+              <h1>${project.name}</h1>
+              <p class="project-fullname">${project.full_name}</p>
+            </div>
+            <a href="https://github.com/${project.full_name}" 
+               target="_blank" 
+               class="btn-github">
+              Voir sur GitHub →
+            </a>
+          </div>
+
+          <div class="project-badges">
+            <span class="badge language">${project.language || 'N/A'}</span>
+            ${project.category ? `<span class="badge category">${getCategoryLabel(project.category)}</span>` : ''}
+          </div>
+
+          <div class="project-stats-row">
+            <div class="stat-item">
+              <span class="stat-icon">⭐</span>
+              <span class="stat-value">${project.stars.toLocaleString()}</span>
+              <span class="stat-label">Stars</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-icon">💎</span>
+              <span class="stat-value">${project.utility_score ? project.utility_score.toFixed(1) : 'N/A'}/10</span>
+              <span class="stat-label">Score Utilité</span>
+            </div>
+          </div>
+
+          ${project.description ? `
+            <div class="section">
+              <h2>📝 Description</h2>
+              <p>${project.description}</p>
+            </div>
+          ` : ''}
+
+          ${project.topics && project.topics.length > 0 ? `
+            <div class="section">
+              <h2>🏷️ Topics</h2>
+              <div class="topics-list">
+                ${project.topics.map(topic => `<span class="topic">${topic}</span>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          ${project.ai_analysis ? `
+            <div class="section">
+              <h2>🤖 Analyse IA</h2>
+              <div class="analysis-grid">
+                ${project.ai_analysis.documentation_quality ? `
+                  <div class="analysis-item">
+                    <strong>📚 Documentation</strong>
+                    <span class="badge ${getBadgeClass(project.ai_analysis.documentation_quality)}">
+                      ${project.ai_analysis.documentation_quality}
+                    </span>
+                  </div>
+                ` : ''}
+                ${project.ai_analysis.complexity ? `
+                  <div class="analysis-item">
+                    <strong>⚙️ Complexité</strong>
+                    <span class="badge ${getBadgeClass(project.ai_analysis.complexity)}">
+                      ${project.ai_analysis.complexity}
+                    </span>
+                  </div>
+                ` : ''}
+                ${project.ai_analysis.production_ready !== undefined ? `
+                  <div class="analysis-item">
+                    <strong>🚀 Production Ready</strong>
+                    <span class="badge ${project.ai_analysis.production_ready ? 'success' : 'warning'}">
+                      ${project.ai_analysis.production_ready ? 'Oui' : 'Non'}
+                    </span>
+                  </div>
+                ` : ''}
+                ${project.ai_analysis.features && project.ai_analysis.features.length > 0 ? `
+                  <div class="analysis-item full-width">
+                    <strong>✨ Features</strong>
+                    <div class="features-list">
+                      ${project.ai_analysis.features.map(f => `<span class="feature-tag">${f}</span>`).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          ${project.readme_content ? `
+            <div class="section">
+              <h2>📖 README</h2>
+              <div class="readme-content">
+                <pre>${escapeHtml(project.readme_content.substring(0, 2000))}${project.readme_content.length > 2000 ? '...\n\n[Tronqué - Voir sur GitHub pour le contenu complet]' : ''}</pre>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+
+      container.innerHTML = html;
+    }
+
+    function getCategoryLabel(category) {
+      const labels = {
+        'authentication': '🔐 Authentification',
+        'api': '🔌 API',
+        'database': '🗄️ Base de données',
+        'ui': '🎨 Interface utilisateur',
+        'framework': '🏗️ Framework',
+        'cli': '⌨️ CLI',
+        'testing': '🧪 Testing'
+      };
+      return labels[category] || category;
+    }
+
+    function getBadgeClass(value) {
+      const lowerValue = value.toLowerCase();
+      if (lowerValue === 'excellent' || lowerValue === 'good' || lowerValue === 'low') {
+        return 'success';
+      } else if (lowerValue === 'basic' || lowerValue === 'medium') {
+        return 'warning';
+      } else {
+        return 'error';
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+
+    // Check auth et charger projet
+    checkAuth();
+    loadUserInfo();
+    loadProject();
+  </script>
+</body>
+</html>
