@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil - GitHub Discovery</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-left">
+      <div class="logo" onclick="window.location.href='index.html'">
+        🔍 GitHub Discovery
+      </div>
+    </div>
+    
+    <div class="nav-center">
+      <a href="explore.html" class="nav-link">🔍 Explorer</a>
+      <a href="assistant.html" class="nav-link">🤖 Assistant IA</a>
+    </div>
+    
+    <div class="nav-right">
+      <span id="userName">Chargement...</span>
+      <button onclick="window.location.href='profile.html'" class="btn-profile">👤</button>
+      <button onclick="logout()" class="btn-logout">Déconnexion</button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <button onclick="window.location.href='explore.html'" class="btn-back">← Retour</button>
+
+    <div class="profile-container">
+      <div class="profile-header">
+        <div class="profile-avatar">👤</div>
+        <div class="profile-info">
+          <h1 id="profileName">Chargement...</h1>
+          <p id="profileEmail">email@example.com</p>
+          <p class="profile-member-since">Membre depuis : <span id="memberSince">-</span></p>
+        </div>
+      </div>
+
+      <div class="profile-sections">
+        <div class="profile-section">
+          <h2>📊 Statistiques</h2>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">🔍</div>
+              <div class="stat-info">
+                <div class="stat-value">Bientôt</div>
+                <div class="stat-label">Recherches effectuées</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⭐</div>
+              <div class="stat-info">
+                <div class="stat-value">Bientôt</div>
+                <div class="stat-label">Projets favoris</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h2>⚙️ Paramètres</h2>
+          <div class="settings-list">
+            <div class="setting-item">
+              <div class="setting-info">
+                <strong>🔔 Notifications</strong>
+                <p>Recevoir des alertes sur les nouveaux projets</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="notificationsToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-item">
+              <div class="setting-info">
+                <strong>🌓 Thème sombre</strong>
+                <p>Interface en mode sombre</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <h2>👤 À propos</h2>
+          <div class="about-info">
+            <p><strong>Plateforme :</strong> GitHub Discovery</p>
+            <p><strong>Version :</strong> 1.0.0</p>
+            <p><strong>CEO :</strong> Abdoul Anzize DAOUDA</p>
+            <p><strong>Studio :</strong> Nexus Studio</p>
+            <p><strong>Contact :</strong> <a href="mailto:nexusstudio100@gmail.com">nexusstudio100@gmail.com</a></p>
+          </div>
+        </div>
+
+        <div class="profile-section danger-zone">
+          <h2>⚠️ Zone dangereuse</h2>
+          <button onclick="confirmLogout()" class="btn-danger">
+            Déconnexion
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/auth.js"></script>
+  <script>
+    async function loadProfile() {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('profileName').textContent = data.user.username;
+          document.getElementById('profileEmail').textContent = data.user.email;
+          
+          const createdDate = new Date(data.user.created_at);
+          document.getElementById('memberSince').textContent = 
+            createdDate.toLocaleDateString('fr-FR', { 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            });
+        } else {
+          alert('Erreur de chargement du profil');
+          window.location.href = 'login.html';
+        }
+      } catch (error) {
+        console.error('Profile error:', error);
+        alert('Erreur de connexion');
+      }
+    }
+
+    function confirmLogout() {
+      if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        logout();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+
+    // Load settings from localStorage
+    document.addEventListener('DOMContentLoaded', () => {
+      const darkMode = localStorage.getItem('darkMode') === 'true';
+      const notifications = localStorage.getItem('notifications') === 'true';
+      
+      document.getElementById('darkModeToggle').checked = darkMode;
+      document.getElementById('notificationsToggle').checked = notifications;
+
+      if (darkMode) {
+        document.body.classList.add('dark-mode');
+      }
+    });
+
+    // Save settings
+    document.getElementById('darkModeToggle').addEventListener('change', (e) => {
+      localStorage.setItem('darkMode', e.target.checked);
+      document.body.classList.toggle('dark-mode', e.target.checked);
+    });
+
+    document.getElementById('notificationsToggle').addEventListener('change', (e) => {
+      localStorage.setItem('notifications', e.target.checked);
+    });
+
+    // Check auth et charger profil
+    checkAuth();
+    loadUserInfo();
+    loadProfile();
+  </script>
+</body>
+</html>
