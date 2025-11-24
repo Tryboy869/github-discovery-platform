@@ -1,9 +1,10 @@
-// api.js - NEXUS AXION 4.1 - API Gateway avec Security & Logging
+// api.js - NEXUS AXION 4.1 avec Auto-Scanning
 
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { BackendService } from './server.js';
+import { AutoScanner } from './auto-scanner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,37 +12,17 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ========== SECURITY LOGGER CLASS ==========
-
+// ========== SECURITY LOGGER ==========
 class SecurityLogger {
   log(level, message, data = {}) {
     const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      level,
-      message,
-      ...data
-    };
-    
-    // Console log avec détails
     console.log(`[${timestamp}] [${level}] ${message}`, JSON.stringify(data, null, 2));
   }
   
-  info(message, data) {
-    this.log('INFO', message, data);
-  }
-  
-  warn(message, data) {
-    this.log('WARN', message, data);
-  }
-  
-  error(message, data) {
-    this.log('ERROR', message, data);
-  }
-  
-  security(message, data) {
-    this.log('SECURITY', message, data);
-  }
+  info(message, data) { this.log('INFO', message, data); }
+  warn(message, data) { this.log('WARN', message, data); }
+  error(message, data) { this.log('ERROR', message, data); }
+  security(message, data) { this.log('SECURITY', message, data); }
 }
 
 const logger = new SecurityLogger();
@@ -50,7 +31,6 @@ const logger = new SecurityLogger();
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
 
-// Logging middleware
 app.use((req, res, next) => {
   const startTime = Date.now();
   const ip = req.ip || req.connection.remoteAddress;
@@ -62,34 +42,32 @@ app.use((req, res, next) => {
     userAgent: req.headers['user-agent']
   });
   
-  // Intercept response
   const originalSend = res.send;
   res.send = function(data) {
     const duration = Date.now() - startTime;
-    
     logger.info('RESPONSE_SENT', {
       method: req.method,
       path: req.path,
       statusCode: res.statusCode,
       duration: `${duration}ms`
     });
-    
     originalSend.call(this, data);
   };
   
   next();
 });
 
-// ========== BACKEND SERVICE ==========
+// ========== BACKEND & SCANNER ==========
 let backend;
+let scanner;
 
 async function initBackend() {
-  logger.info('BACKEND_INIT_START', { message: 'Initializing backend service...' });
+  logger.info('BACKEND_INIT_START', { message: 'Initializing backend...' });
   
   try {
     backend = new BackendService();
     await backend.init();
-    logger.info('BACKEND_INIT_SUCCESS', { message: 'Backend service ready' });
+    logger.info('BACKEND_INIT_SUCCESS', { message: 'Backend ready' });
   } catch (error) {
     logger.error('BACKEND_INIT_FAILED', {
       error: error.message,
@@ -99,8 +77,33 @@ async function initBackend() {
   }
 }
 
-// ========== FRONTEND PAGES ==========
+async function initScanner() {
+  logger.info('SCANNER_INIT_START', { message: 'Initializing auto-scanner...' });
+  
+  try {
+    scanner = new AutoScanner(backend);
+    
+    // 🔥 SCAN INITIAL AU DÉMARRAGE
+    logger.info('SCANNER_FIRST_SCAN', { message: 'Starting initial scan...' });
+    scanner.startInitialScan(); // Asynchrone, non-bloquant
+    
+    // 🔥 SCAN AUTOMATIQUE TOUTES LES 12H
+    scanner.schedulePeriodicScan(12); // 12 heures
+    
+    logger.info('SCANNER_INIT_SUCCESS', { 
+      message: 'Auto-scanner ready',
+      schedule: 'Every 12 hours',
+      reposPerScan: 3000
+    });
+  } catch (error) {
+    logger.error('SCANNER_INIT_FAILED', {
+      error: error.message,
+      stack: error.stack
+    });
+  }
+}
 
+// ========== FRONTEND ==========
 app.get('/', (req, res) => {
   logger.info('SERVING_PAGE', { page: 'index.html' });
   res.sendFile(path.join(__dirname, 'index.html'));
@@ -108,16 +111,21 @@ app.get('/', (req, res) => {
 
 // ========== API ENDPOINTS ==========
 
-// Health Check
 app.get('/api/health', (req, res) => {
   logger.info('HEALTH_CHECK', { status: 'ok' });
-  res.json({ success: true, message: 'API is running' });
+  res.json({ 
+    success: true, 
+    message: 'API is running',
+    scanner: {
+      running: scanner?.isScanning || false,
+      lastScan: scanner?.lastScanTime || null,
+      totalProjects: scanner?.totalScanned || 0
+    }
+  });
 });
 
-// Inscription
 app.post('/api/auth/signup', async (req, res) => {
   const { email, username, password } = req.body;
-  
   logger.info('SIGNUP_ATTEMPT', { email, username });
   
   try {
@@ -149,10 +157,8 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 });
 
-// Connexion
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  
   logger.info('LOGIN_ATTEMPT', { email });
   
   try {
@@ -183,10 +189,8 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Profil utilisateur
 app.get('/api/profile', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  
   logger.info('PROFILE_REQUEST', { hasToken: !!token });
   
   try {
@@ -216,7 +220,6 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
-// Liste des projets
 app.get('/api/projects', async (req, res) => {
   const filters = {
     language: req.query.language,
@@ -229,9 +232,7 @@ app.get('/api/projects', async (req, res) => {
   
   try {
     const result = await backend.getProjects(filters);
-    
     logger.info('PROJECTS_SUCCESS', { count: result.projects?.length || 0 });
-    
     res.json(result);
   } catch (error) {
     logger.error('PROJECTS_ERROR', {
@@ -243,10 +244,8 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
-// Détail d'un projet
 app.get('/api/projects/:id', async (req, res) => {
   const projectId = req.params.id;
-  
   logger.info('PROJECT_DETAIL_REQUEST', { projectId });
   
   try {
@@ -269,17 +268,14 @@ app.get('/api/projects/:id', async (req, res) => {
   }
 });
 
-// Statistiques
 app.get('/api/stats', async (req, res) => {
   logger.info('STATS_REQUEST', {});
   
   try {
     const result = await backend.getStats();
-    
     logger.info('STATS_SUCCESS', {
       totalProjects: result.stats?.total_projects || 0
     });
-    
     res.json(result);
   } catch (error) {
     logger.error('STATS_ERROR', {
@@ -290,10 +286,8 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
-// IA Recommandations
 app.post('/api/assistant/recommend', async (req, res) => {
   const { query, context } = req.body;
-  
   logger.info('RECOMMEND_REQUEST', { query });
   
   try {
@@ -306,12 +300,10 @@ app.post('/api/assistant/recommend', async (req, res) => {
     }
     
     const result = await backend.getRecommendations(query, context);
-    
     logger.info('RECOMMEND_SUCCESS', {
       query,
       resultsCount: result.recommendations?.length || 0
     });
-    
     res.json(result);
   } catch (error) {
     logger.error('RECOMMEND_ERROR', {
@@ -323,8 +315,30 @@ app.post('/api/assistant/recommend', async (req, res) => {
   }
 });
 
-// ========== ERROR HANDLERS ==========
+// ========== SCANNER STATUS ENDPOINT ==========
+app.get('/api/scanner/status', (req, res) => {
+  if (!scanner) {
+    return res.json({
+      success: true,
+      scanner: {
+        initialized: false
+      }
+    });
+  }
+  
+  res.json({
+    success: true,
+    scanner: {
+      initialized: true,
+      isScanning: scanner.isScanning,
+      lastScanTime: scanner.lastScanTime,
+      totalScanned: scanner.totalScanned,
+      nextScanIn: scanner.getNextScanTime()
+    }
+  });
+});
 
+// ========== ERROR HANDLERS ==========
 app.use((err, req, res, next) => {
   logger.error('UNHANDLED_ERROR', {
     error: err.message,
@@ -344,12 +358,12 @@ app.use((req, res) => {
 });
 
 // ========== START SERVER ==========
-
 async function startServer() {
   try {
     logger.info('SERVER_START', { message: 'Starting server...' });
     
     await initBackend();
+    await initScanner(); // 🔥 Scanner automatique
     
     app.listen(PORT, '0.0.0.0', () => {
       logger.info('SERVER_READY', {
@@ -359,13 +373,15 @@ async function startServer() {
       
       console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║   🌌 NEXUS AXION 4.1 - GitHub Discovery               ║
+║   🌌 GitHub Discovery Platform                        ║
 ║   👤 CEO: Abdoul Anzize DAOUDA                        ║
 ║   🏢 Nexus Studio                                     ║
 ║   🌐 Server: http://0.0.0.0:${PORT}                           ║
 ║   📧 Contact: nexusstudio100@gmail.com                ║
 ║   🛡️  Security: Active                                ║
 ║   📊 Logging: Enhanced                                ║
+║   🤖 Auto-Scanner: Every 12 hours                     ║
+║   📦 Repos/Scan: 3000 (600/language × 5)              ║
 ╚═══════════════════════════════════════════════════════╝
       `);
     });
@@ -379,14 +395,15 @@ async function startServer() {
 }
 
 // ========== GRACEFUL SHUTDOWN ==========
-
 process.on('SIGTERM', () => {
   logger.info('SHUTDOWN', { signal: 'SIGTERM' });
+  if (scanner) scanner.stop();
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('SHUTDOWN', { signal: 'SIGINT' });
+  if (scanner) scanner.stop();
   process.exit(0);
 });
 
